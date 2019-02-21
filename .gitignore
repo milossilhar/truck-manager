@@ -7,6 +7,9 @@
 # DS_Store files
 .DS_Store
 
+# Target folder
+target/
+
 # BlueJ files
 *.ctxt
 
