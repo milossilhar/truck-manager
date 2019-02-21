@@ -1,0 +1,5 @@
+[2019-02-20 20:45:40,281] INFO Processed session termination for sessionid: 0x1000b0c05b20002 (org.apache.zookeeper.server.PrepRequestProcessor)
+[2019-02-20 20:45:40,294] INFO Processed session termination for sessionid: 0x1000b0c05b20001 (org.apache.zookeeper.server.PrepRequestProcessor)
+[2019-02-20 20:45:40,301] INFO Closed socket connection for client /0:0:0:0:0:0:0:1:61991 which had sessionid 0x1000b0c05b20002 (org.apache.zookeeper.server.NIOServerCnxn)
+[2019-02-20 20:45:40,302] WARN Unable to read additional data from client sessionid 0x1000b0c05b20001, likely client has closed socket (org.apache.zookeeper.server.NIOServerCnxn)
+[2019-02-20 20:45:40,303] INFO Closed socket connection for client /127.0.0.1:61986 which had sessionid 0x1000b0c05b20001 (org.apache.zookeeper.server.NIOServerCnxn)
