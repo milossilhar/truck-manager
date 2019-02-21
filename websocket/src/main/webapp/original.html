@@ -1,0 +1,90 @@
+<html>
+<head>
+    <meta charset="UTF-8">
+    <script src="https://code.jquery.com/jquery-3.1.0.min.js"></script>
+    <!--<script src="http://autobahn.s3.amazonaws.com/js/autobahn.min.js"></script>-->
+    <script src="js/autobahn.0.8.2.min.js"></script>
+    <script>
+        var reconnectMin  = 1500;	// current reconnect timeout
+        var reconnectScale = 1.5;	// add 50% on each failure
+        var reconnectMax = 240000;	// 4min
+        var reconnectTime = reconnectMin;	// current reconnect timeout
+        var connectScheduled = -1;
+        var conn;
+        var compKey;
+
+        function connect() {
+            console.info('Connecting to WS server...');
+            if (connectScheduled != -1) {
+                clearTimeout(connectScheduled);
+                connectScheduled = -1;
+            }
+
+            compKey = $('#company').val();
+            var token = $('#token').val();
+
+            conn = new ab.Session('ws://127.0.0.1:8080/websocket/socket',
+                function() {
+                    console.info('connected to WS server');
+                    console.info('rpc to auth - token ' + token);
+                    conn.call('auth', [token, compKey])
+                        .then(onLoginSucceeded, onLoginFailed);
+                },
+                function(reason) {
+                    console.warn('WebSocket connection closed. Reason: ' + reason);
+                    // Reconnect...
+                    if (conn != null && connectScheduled == -1) {
+                        connectScheduled = setTimeout(function() { connect(); }, reconnectTime);
+                        console.log("Connection scheduled in " + reconnectTime);
+                        reconnectTime = reconnectTime * reconnectScale;
+                    }
+                },
+                {skipSubprotocolCheck: true, max_retries:-1}
+            );
+        }
+
+        function disconnect() {
+            if (conn) {
+                c = conn;
+                conn = null;
+                c.close();
+                if (connectScheduled != -1)
+                    clearTimeout(connectScheduled);
+                reconnectTime = reconnectMin;
+                $('#msgs').html('Disconnected by user');
+            }
+        }
+
+        function onLoginSucceeded(result) {
+            $('#msgs').prepend('<div>Connected, subscribing...</div>');
+            console.info("Authenticated " + JSON.stringify(result));
+            console.info("Subscribing to " + 'company.'+compKey);
+            conn.subscribe('company.'+compKey, onNewRecord)
+                .then(function(subscription) { console.log("Subscribed to "+subscription); },
+                    function(error) { console.warn("Failed to subscribe: "+error); });
+            reconnectTime = reconnectMin;
+        }
+
+        function onLoginFailed(error) {
+            console.warn('invalid login: '+error);
+            if (conn)
+                conn.close();
+        }
+
+        function onNewRecord(topic, data) {
+            // This is where you would add the new article to the DOM (beyond the scope of this tutorial)
+            console.log('New record in "' + topic + '" : ' + JSON.stringify(data));
+            $('#msgs').prepend('<div>' + JSON.stringify(data) + '</div>');
+        }
+
+    </script>
+</head>
+<body>
+<label>Token:<input type="text" name="token" id="token"></label>
+<label>Company:<input type="text" name="company" id="company"></label>
+<button onclick="connect();">Connect and Register</button>
+<button onclick="disconnect();">Disconnect</button><br>
+<div>Received messages:</div>
+<div id="msgs"></div>
+</body>
+</html>

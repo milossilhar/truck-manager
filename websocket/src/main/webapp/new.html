@@ -1,0 +1,97 @@
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Websocket New Client</title>
+
+    <script>//AUTOBAHN_DEBUG = true;</script>
+    <script src="https://code.jquery.com/jquery-3.1.0.min.js"></script>
+    <script src="js/autobahn.18.10.2.min.js"></script>
+    <script>
+        var connection = null;
+        var sess = null;
+        var compKey;
+
+        function connect() {
+            disconnect();
+            $("#status").html('<div>Connecting to WS server...</div>');
+
+            connection = new autobahn.Connection({
+                url: "ws://127.0.0.1:8080/websocket/socket",
+                realm: "tmapp"
+            });
+
+            compKey = $('#company').val();
+            var token = $('#token').val();
+
+            connection.onopen = function (session, details) {
+                console.log("Connection open....")
+                console.log("Session ID: "+session.id);
+                sess = session;
+                session.call('auth', [token, compKey])
+                    .then(onLoginSucceeded, onLoginFailed);
+            };
+
+            connection.onclose = function (reason, details) {
+                console.warn(reason);
+            };
+
+            connection.open();
+            $("#status").html('<div>Connected...</div>');
+        }
+
+        function disconnect() {
+            var c;
+            if (connection) {
+                c = connection;
+                connection = null;
+                sess = null;
+                c.close();
+                $('#status').html('<div>Disconnected by user</div>');
+            }
+        }
+
+        function onLoginSucceeded(result) {
+            $('#status').html('<div>Connected ...</div>');
+            console.info("Authenticated " + JSON.stringify(result));
+            console.info("Subscribing to company-" + compKey);
+            sess.subscribe(compKey, onNewRecord).then(
+                function(subscription) {
+                    console.log("Subscribed to company-" + compKey);
+                },
+                function(error) {
+                    console.warn("Failed to subscribe: " + JSON.stringify(error));
+                });
+        }
+
+        function onLoginFailed(error) {
+            console.warn('Invalid login: ' + JSON.stringify(error));
+            if (connection) {
+                c = connection;
+                connection = null;
+                sess = null;
+                c.close();
+                $('#status').html('<div>Login failed...</div>');
+            }
+        }
+
+        function onNewRecord(topic, data) {
+            // This is where you would add the new article to the DOM (beyond the scope of this tutorial)
+            console.log('New record in "' + topic + '" : ' + JSON.stringify(data));
+            $('#msgs').append('<div>' + new Date().toLocaleString() + ' - ' + JSON.stringify(data) + '</div>');
+        }
+
+    </script>
+</head>
+<body>
+    <label>Token:<input type="text" name="token" id="token"></label>
+    <label>Company:<input type="text" name="company" id="company"></label>
+    <button onclick="connect();">Connect and Register</button>
+    <button onclick="disconnect();">Disconnect</button><br>
+    <hr>
+    <div>Status bar:</div>
+    <div id="status"></div>
+    <hr>
+    <div>Received messages:</div>
+    <div id="msgs"></div>
+</body>
+</html>
