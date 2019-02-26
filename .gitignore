@@ -10,6 +10,9 @@
 # Target folder
 target/
 
+# Kafka Logs
+kafka/logs/
+
 # BlueJ files
 *.ctxt
 
