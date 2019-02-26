@@ -83,7 +83,7 @@ public class KafkaAuthService implements Runnable {
                     if (value.getOperation().equals("insert")) {
                         if (expiresAt.isAfter(Instant.now())) {
                             logger.info("Insert token: " + record.key() + " compKey: " + value.getCompKey());
-                            authManager.addToken(record.key(), value.getCompKey());
+                            authManager.addToken(record.key(), value.getCompKey(), expiresAt);
                         }
                     } else if (value.getOperation().equals("delete")) {
                         logger.info("Remove token: " + record.key());

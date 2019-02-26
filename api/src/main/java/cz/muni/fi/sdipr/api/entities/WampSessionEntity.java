@@ -12,6 +12,7 @@ import ws.wamp.jawampa.MessageType;
 
 import javax.websocket.Session;
 import java.io.IOException;
+import java.time.Instant;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
@@ -178,6 +179,14 @@ public class WampSessionEntity {
      * @param jsonData Data must be in json format
      */
     public void sendEvent(String topic, String jsonData) {
+        if (this.authKey != null) {
+            Instant expiresAt = authManager.getValue(this.authKey).getExpiresAt();
+            if (expiresAt.isBefore(Instant.now())) {
+                authManager.removeToken(this.authKey);
+                subscriptionManager.removeToken(this.compKey);
+                return;
+            }
+        }
         JsonArray wampArray = new JsonArray();
 
         wampArray.add(MessageType.EVENT); // EVENT

@@ -5,6 +5,7 @@ import cz.muni.fi.sdipr.api.entities.WampSessionEntity;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.Instant;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
@@ -17,7 +18,7 @@ public class AuthManager {
     public AuthManager() {
         //TODO remove anonym access
         // adds anonym access, just for develop purposes
-        this.addToken("anonym", "ibm");
+        this.addToken("anonym", "ibm", Instant.now().plusSeconds(240));
     }
 
     /**
@@ -25,14 +26,14 @@ public class AuthManager {
      * @param authKey
      * @param compKey
      */
-    public void addToken(String authKey, String compKey) {
+    public void addToken(String authKey, String compKey, Instant expiresAt) {
         if (authKey == null) {
             throw new NullPointerException("authKey is null");
         }
         if (compKey == null) {
             throw new NullPointerException("compKey is null");
         }
-        validTokens.putIfAbsent(authKey, new TokenValueEntity(compKey));
+        validTokens.putIfAbsent(authKey, new TokenValueEntity(compKey, expiresAt));
     }
 
     /**
