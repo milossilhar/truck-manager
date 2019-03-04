@@ -6,7 +6,7 @@
   <groupId>cz.muni.fi.sdipr</groupId>
   <artifactId>truckmanager</artifactId>
   <packaging>pom</packaging>
-  <version>1.0-SNAPSHOT</version>
+  <version>1.0</version>
   <name>Truck Manager</name>
   <url>http://maven.apache.org</url>
 

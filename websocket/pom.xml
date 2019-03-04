@@ -6,7 +6,7 @@
 
   <groupId>cz.muni.fi.sdipr</groupId>
   <artifactId>websocket</artifactId>
-  <version>1.0-SNAPSHOT</version>
+  <version>1.0</version>
   <packaging>war</packaging>
 
   <name>Websocket Server</name>
@@ -46,6 +46,7 @@
       <artifactId>log4j-over-slf4j</artifactId>
       <version>1.7.25</version>
     </dependency>
+
     <dependency>
       <groupId>org.apache.kafka</groupId>
       <artifactId>kafka-clients</artifactId>
@@ -61,12 +62,12 @@
       <artifactId>jawampa-core</artifactId>
       <version>0.5.0</version>
     </dependency>
-      <dependency>
-          <groupId>cz.muni.fi.sdipr</groupId>
-          <artifactId>api</artifactId>
-          <version>1.0-SNAPSHOT</version>
-          <scope>compile</scope>
-      </dependency>
+    <dependency>
+        <groupId>cz.muni.fi.sdipr</groupId>
+        <artifactId>api</artifactId>
+        <version>1.0</version>
+        <scope>compile</scope>
+    </dependency>
   </dependencies>
 
   <build>
@@ -109,7 +110,7 @@
         <plugin>
           <groupId>org.codehaus.cargo</groupId>
           <artifactId>cargo-maven2-plugin</artifactId>
-          <version>1.6.11</version>
+          <version>1.7.2</version>
           <configuration>
             <container>
               <containerId>tomcat9x</containerId>
