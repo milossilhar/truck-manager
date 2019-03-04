@@ -25,6 +25,8 @@ kafka/logs/
 
 # Package Files #
 *.jar
+# except kafka jar files
+!kafka/libs/*.jar
 *.war
 *.nar
 *.ear
