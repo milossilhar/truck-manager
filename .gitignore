@@ -20,13 +20,19 @@ kafka/logs/
 *.iml
 .idea/
 
+# Only war folder
+websocket/war/*
+!websocket/war/.gitkeep
+
 # Mobile Tools for Java (J2ME)
 .mtj.tmp/
 
 # Package Files #
 *.jar
+
 # except kafka jar files
 !kafka/libs/*.jar
+
 *.war
 *.nar
 *.ear
