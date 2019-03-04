@@ -56,38 +56,22 @@ public class SubscriptionManager {
     }
 
     /**
-     * Removes client from every subscription
-     * @param session
+     * Removes all clients from subscription to specific company key
+     * @param compKey
+     * @param authKey
      */
-    public void removeSubscription(WampSessionEntity session) {
-        if (session == null) {
-            throw new NullPointerException("session is null");
+    public void removeAuthorization(String compKey, String authKey) {
+        if (compKey == null) {
+            throw new NullPointerException("compKey is null");
         }
-        subscriptions.forEach((key, clients) -> {
-            clients.remove(session);
+        if (authKey == null) {
+            throw new NullPointerException("authKey is null");
+        }
+
+        subscriptions.computeIfPresent(compKey, (key, clients) -> {
+            clients.removeIf(session -> session.getAuthKey().equals(authKey));
+            return clients;
         });
-    }
-
-    /**
-     * Adds company key to subscriptions
-     * @param compKey
-     */
-    public void addToken(String compKey) {
-        if (compKey == null) {
-            throw new NullPointerException("compKey is null");
-        }
-        subscriptions.putIfAbsent(compKey, new HashSet<>());
-    }
-
-    /**
-     * Removes company key from subscriptions
-     * @param compKey
-     */
-    public void removeToken(String compKey) {
-        if (compKey == null) {
-            throw new NullPointerException("compKey is null");
-        }
-        subscriptions.remove(compKey);
     }
 
     /**
@@ -99,12 +83,7 @@ public class SubscriptionManager {
         if (compKey == null) {
             throw new NullPointerException("compKey is null");
         }
-        Set<WampSessionEntity> clients = subscriptions.getOrDefault(compKey, null);
-        if (clients == null) {
-            return null;
-        } else {
-            return Collections.unmodifiableSet(clients);
-        }
+        return subscriptions.getOrDefault(compKey, Collections.emptySet());
     }
 
     /**
@@ -119,14 +98,13 @@ public class SubscriptionManager {
         if (jsonData == null) {
             throw new NullPointerException("jsonData is null");
         }
-        Set<WampSessionEntity> clients = subscriptions.getOrDefault(compKey, null);
-        if (clients != null) {
+        subscriptions.computeIfPresent(compKey, (key, clients) -> {
             clients.forEach(cl -> cl.sendEvent(compKey, jsonData));
-        }
-    }
-
-    //TODO remove it was just because of debug purposes
-    public ConcurrentMap<String, Set<WampSessionEntity>> getAll() {
-        return subscriptions;
+            return clients;
+        });
+        //.getOrDefault(compKey, null);
+        //if (clients != null) {
+        //    clients.forEach(cl -> cl.sendEvent(compKey, jsonData));
+        //}
     }
 }

@@ -56,6 +56,24 @@ public class AuthManager {
     }
 
     /**
+     * Extends validity of given authorization key
+     * @param authKey
+     * @param expiresAt
+     */
+    public void extendToken(String authKey, Instant expiresAt) {
+        if (authKey == null) {
+            throw new NullPointerException("authKey is null");
+        }
+        if (expiresAt == null) {
+            throw new NullPointerException("expiresAt is null");
+        }
+
+        TokenValueEntity valueEntity = getValue(authKey);
+        if (valueEntity != null) {
+            valueEntity.setExpiresAt(expiresAt);
+        }
+    }
+    /**
      * Checks if there is authorized specified token
      * @param authKey Auth token to check
      * @return True if authorization token is valid, false otherwise

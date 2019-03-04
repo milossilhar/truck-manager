@@ -32,6 +32,8 @@ public class TokenValueEntity {
 
     public Instant getExpiresAt() { return expiresAt; }
 
+    public void setExpiresAt(Instant expiresAt) { this.expiresAt = expiresAt; }
+
     public List<WampSessionEntity> getClients() {
         return Collections.unmodifiableList(clients);
     }

@@ -117,18 +117,12 @@ public class WampSessionEntity {
         if (procedure.equals("auth")) {
             String authKey = arguments.get(0);
             String compKey = arguments.get(1);
-            if (authKey.equals("anonym") && compKey.equals("ibm")) {
+            if (authManager.hasAuthKey(authKey) && authManager.getCompanyKey(authKey).equals(compKey)) {
                 this.authKey = authKey;
                 authManager.addClient(authKey, this);
                 sendCallResult(requestId, "ok");
                 logger.info("Authenticated client " + sessionWampId);
-                logger.info("Clients of company " + compKey + " are: " + authManager.getValue(authKey).getClients().toString());
-            } else if (authManager.hasAuthKey(authKey) && authManager.getCompanyKey(authKey).equals(compKey)) {
-                this.authKey = authKey;
-                authManager.addClient(authKey, this);
-                sendCallResult(requestId, "ok");
-                logger.info("Authenticated client " + sessionWampId);
-                logger.info("Clients of company " + compKey + " are: " + authManager.getValue(authKey).getClients().toString());
+                logger.info("Clients of authKey " + authKey + " are: " + authManager.getValue(authKey).getClients().size());
             } else {
                 sendCallError(requestId, "wamp.error.authorization_failed", "Invalid credentials");
                 closeSession();
@@ -152,7 +146,7 @@ public class WampSessionEntity {
             sendProtocolViolation("Receiving SUBSCRIBE message, but session was not established");
             return;
         }
-        if (authKey == null) {
+        if (this.authKey == null) {
             logger.info("Unauthorized subscription to " + topic);
             closeSession();
             return;
@@ -161,6 +155,7 @@ public class WampSessionEntity {
         this.compKey = topic;
         subscriptionManager.addSubscription(topic, this);
         sendSubscribed(requestId, topic);
+        logger.info("Clients of company " + compKey + " are: " + subscriptionManager.getClients(compKey).size());
     }
 
     /**
@@ -182,8 +177,8 @@ public class WampSessionEntity {
         if (this.authKey != null) {
             Instant expiresAt = authManager.getValue(this.authKey).getExpiresAt();
             if (expiresAt.isBefore(Instant.now())) {
-                authManager.removeToken(this.authKey);
-                subscriptionManager.removeToken(this.compKey);
+                authManager.removeToken(this.getAuthKey());
+                subscriptionManager.removeAuthorization(this.getCompKey(), this.getAuthKey());
                 return;
             }
         }

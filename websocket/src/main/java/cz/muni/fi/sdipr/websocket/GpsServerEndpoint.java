@@ -6,6 +6,8 @@ import com.google.gson.JsonParseException;
 import com.google.gson.JsonParser;
 import cz.muni.fi.sdipr.api.entities.WampSessionEntity;
 import cz.muni.fi.sdipr.api.exceptions.WampMessageFormatException;
+import cz.muni.fi.sdipr.api.factories.AuthManagerFactory;
+import cz.muni.fi.sdipr.api.factories.SubscriptionManagerFactory;
 import cz.muni.fi.sdipr.api.managers.AuthManager;
 import cz.muni.fi.sdipr.api.managers.SubscriptionManager;
 import org.slf4j.Logger;
@@ -34,14 +36,12 @@ public class GpsServerEndpoint {
     // valid wamp sessions that are currently active [key: websocket session id, value: wamp session]
     private static ConcurrentMap<String, WampSessionEntity> sessions = new ConcurrentHashMap<>();
 
-    private static AuthManager authManager = new AuthManager();
+    private static AuthManager authManager = AuthManagerFactory.getInstance();
 
-    private static SubscriptionManager subscriptionManager = new SubscriptionManager();
+    private static SubscriptionManager subscriptionManager = SubscriptionManagerFactory.getInstance();
 
     @OnOpen
     public void onOpen(Session session) {
-        KafkaAuthService.initialize(authManager, subscriptionManager);
-        KafkaGpsService.initialize(subscriptionManager);
         logger.info("Connected client: " + session.getId());
         sessions.putIfAbsent(session.getId(), new WampSessionEntity(session, authManager, subscriptionManager));
     }
@@ -107,6 +107,7 @@ public class GpsServerEndpoint {
 
     @OnError
     public void onError(Throwable error) {
-        logger.error(error.getMessage());
+        error.printStackTrace();
+        logger.error("Some error");
     }
 }

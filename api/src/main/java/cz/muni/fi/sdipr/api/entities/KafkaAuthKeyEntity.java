@@ -1,7 +1,5 @@
 package cz.muni.fi.sdipr.api.entities;
 
-import java.time.Instant;
-
 /**
  * Entity used in kafka auth topic as json object
  * @author Milos Silhar (433614)

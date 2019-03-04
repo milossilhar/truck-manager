@@ -19,6 +19,7 @@ import java.time.Instant;
 import java.util.Collections;
 import java.util.Properties;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Authorization service that gets and pushes auth keys to Kafka.
@@ -27,14 +28,14 @@ import java.util.UUID;
 public class KafkaAuthService implements Runnable {
     private static final Logger logger = LoggerFactory.getLogger(KafkaAuthService.class);
 
-    private static final String KAFKA_SERVERS = "localhost:9092,localhost:9093,localhost:9094";
+    private static final String KAFKA_SERVERS = "192.168.1.1:9092,192.168.1.1:9093,192.168.1.1:9094";
 
     private static KafkaAuthService instance;
     private static AuthManager authManager;
     private static SubscriptionManager subscriptionManager;
     private static KafkaConsumer<String, String> consumer;
-
-    private KafkaAuthService() {}
+    private static AtomicBoolean keepGoing = new AtomicBoolean(true);
+    private static Thread runningThread;
 
     /**
      * Initializes Kafka Authentication service.
@@ -67,13 +68,33 @@ public class KafkaAuthService implements Runnable {
 
             logger.info("Running Kafka auth consumer...");
             instance = new KafkaAuthService();
-            new Thread(instance).start();
+            runningThread = new Thread(instance, "KafkaAuthService");
+            runningThread.start();
+        }
+    }
+
+    public static void stop() {
+        if (instance != null) {
+            logger.info("Stopping Kafka auth service...");
+            keepGoing.set(false);
+            try {
+                runningThread.join();
+            } catch (InterruptedException e) {
+                logger.error("Kafka Auth Service thread interrupted");
+            }
+            logger.info("Stopping Kafka auth consumer...");
+            consumer.close();
+            consumer = null;
+            authManager = null;
+            subscriptionManager = null;
+            instance = null;
+            keepGoing.compareAndSet(false, true);
         }
     }
 
     @Override
     public void run() {
-        while (true) {
+        while (keepGoing.get()) {
             ConsumerRecords<String, String> records = consumer.poll(Duration.ofMillis(100));
             for (ConsumerRecord<String, String> record : records) {
                 try {
@@ -85,10 +106,13 @@ public class KafkaAuthService implements Runnable {
                             logger.info("Insert token: " + record.key() + " compKey: " + value.getCompKey());
                             authManager.addToken(record.key(), value.getCompKey(), expiresAt);
                         }
+                    } else if (value.getOperation().equals("update")) {
+                        logger.info("Update token: " + record.key() + " expiresAt: " + expiresAt);
+                        authManager.extendToken(record.key(), expiresAt);
                     } else if (value.getOperation().equals("delete")) {
                         logger.info("Remove token: " + record.key());
                         authManager.removeToken(record.key());
-                        subscriptionManager.removeToken(value.getCompKey());
+                        subscriptionManager.removeAuthorization(value.getCompKey(), record.key());
                     } else {
                         throw new KafkaMessageFormatException("topic: auth_keys, error: unsupported operation in json");
                     }

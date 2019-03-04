@@ -4,4 +4,7 @@
 
 <web-app>
   <display-name>Websocket GPS Server</display-name>
+  <listener>
+    <listener-class>cz.muni.fi.sdipr.websocket.GpsServletContext</listener-class>
+  </listener>
 </web-app>

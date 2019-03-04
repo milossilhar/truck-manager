@@ -1,10 +1,5 @@
 package cz.muni.fi.sdipr.websocket;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.JsonSyntaxException;
-import cz.muni.fi.sdipr.api.entities.KafkaAuthKeyEntity;
-import cz.muni.fi.sdipr.api.exceptions.KafkaMessageFormatException;
 import cz.muni.fi.sdipr.api.managers.SubscriptionManager;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
@@ -12,22 +7,22 @@ import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.lang.reflect.Modifier;
 import java.time.Duration;
-import java.time.Instant;
-import java.util.Collections;
 import java.util.Properties;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.regex.Pattern;
 
 public class KafkaGpsService implements Runnable {
     private static final Logger logger = LoggerFactory.getLogger(KafkaGpsService.class);
 
-    private static final String KAFKA_SERVERS = "localhost:9092,localhost:9093,localhost:9094";
+    private static final String KAFKA_SERVERS = "192.168.1.1:9092,192.168.1.1:9093,192.168.1.1:9094";
     private static final String TOPIC_PREFIX = "company-";
 
     private static KafkaGpsService instance;
     private static SubscriptionManager subscriptionManager;
     private static KafkaConsumer<String, String> kafkaConsumer;
+    private static AtomicBoolean keepGoing = new AtomicBoolean(true);
+    private static Thread runningThread;
 
     public static void initialize(SubscriptionManager manager) {
         if (instance == null) {
@@ -46,7 +41,26 @@ public class KafkaGpsService implements Runnable {
 
             logger.info("Running Kafka companies consumer...");
             instance = new KafkaGpsService();
-            new Thread(instance).start();
+            runningThread = new Thread(instance, "KafkaGPSService");
+            runningThread.start();
+        }
+    }
+
+    public static void stop() {
+        if (instance != null) {
+            logger.info("Stopping Kafka companies service...");
+            keepGoing.set(false);
+            try {
+                runningThread.join();
+            } catch (InterruptedException e) {
+                logger.error("Kafka GPS Service thread interrupted");
+            }
+            logger.info("Stopping Kafka companies consumer...");
+            kafkaConsumer.close();
+            kafkaConsumer = null;
+            subscriptionManager = null;
+            instance = null;
+            keepGoing.compareAndSet(false, true);
         }
     }
 
@@ -67,7 +81,7 @@ public class KafkaGpsService implements Runnable {
 //                logger.error("Exception KafkaGPSService: " + ex.getMessage());
 //            }
 //        }
-        while(true) {
+        while(keepGoing.get()) {
             ConsumerRecords<String, String> records = kafkaConsumer.poll(Duration.ofMillis(100));
             for (ConsumerRecord<String, String> record : records) {
                 String compKey = record.topic().substring(TOPIC_PREFIX.length());
