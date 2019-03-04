@@ -112,7 +112,7 @@ public class KafkaAuthService implements Runnable {
                     } else if (value.getOperation().equals("delete")) {
                         logger.info("Remove token: " + record.key());
                         authManager.removeToken(record.key());
-                        subscriptionManager.removeAuthorization(value.getCompKey(), record.key());
+                        //subscriptionManager.removeAuthorization(value.getCompKey(), record.key());
                     } else {
                         throw new KafkaMessageFormatException("topic: auth_keys, error: unsupported operation in json");
                     }

@@ -43,7 +43,7 @@ public class GpsServerEndpoint {
     @OnOpen
     public void onOpen(Session session) {
         logger.info("Connected client: " + session.getId());
-        sessions.putIfAbsent(session.getId(), new WampSessionEntity(session, authManager, subscriptionManager));
+        sessions.putIfAbsent(session.getId(), new WampSessionEntity(session));
     }
 
     @OnMessage
@@ -99,9 +99,9 @@ public class GpsServerEndpoint {
         if (authKey != null) {
             authManager.removeClient(authKey, wampSession);
         }
-        if (compKey != null) {
-            subscriptionManager.removeSubscription(compKey, wampSession);
-        }
+        //if (compKey != null) {
+        //    subscriptionManager.removeSubscription(compKey, wampSession);
+        //}
         sessions.remove(session.getId());
     }
 

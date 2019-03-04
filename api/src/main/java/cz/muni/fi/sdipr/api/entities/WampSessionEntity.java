@@ -4,6 +4,8 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import cz.muni.fi.sdipr.api.enums.WampStatesEnum;
 import cz.muni.fi.sdipr.api.exceptions.WebSocketSessionClosedException;
+import cz.muni.fi.sdipr.api.factories.AuthManagerFactory;
+import cz.muni.fi.sdipr.api.factories.SubscriptionManagerFactory;
 import cz.muni.fi.sdipr.api.managers.AuthManager;
 import cz.muni.fi.sdipr.api.managers.SubscriptionManager;
 import org.slf4j.Logger;
@@ -32,21 +34,14 @@ public class WampSessionEntity {
     private String compKey;
     private String sessionWampId;
     private WampStatesEnum currentState; //indicates current session state
-    private AuthManager authManager;
-    private SubscriptionManager subscriptionManager;
 
-    public WampSessionEntity(Session session, AuthManager authManager, SubscriptionManager subscriptionManager) {
+    public WampSessionEntity(Session session) {
         if (session == null) {
             throw new NullPointerException("session is null");
-        }
-        if (authManager == null) {
-            throw new NullPointerException("manager is null");
         }
         this.currentState = WampStatesEnum.CLOSED;
         this.session = session;
         this.sessionWampId = randomString(session.getId());
-        this.authManager = authManager;
-        this.subscriptionManager = subscriptionManager;
     }
 
     public String getAuthKey() {
@@ -64,6 +59,8 @@ public class WampSessionEntity {
     public String getSessionWampId() {
         return sessionWampId;
     }
+
+    public boolean isClosed() { return this.currentState != WampStatesEnum.ESTABLISHED; }
 
     /**
      * Received HELLO from the client, Realm and Details are omitted.
@@ -117,6 +114,7 @@ public class WampSessionEntity {
         if (procedure.equals("auth")) {
             String authKey = arguments.get(0);
             String compKey = arguments.get(1);
+            AuthManager authManager = AuthManagerFactory.getInstance();
             if (authManager.hasAuthKey(authKey) && authManager.getCompanyKey(authKey).equals(compKey)) {
                 this.authKey = authKey;
                 authManager.addClient(authKey, this);
@@ -152,8 +150,9 @@ public class WampSessionEntity {
             return;
         }
         logger.info("Received SUBSCRIBE: " + requestId + " | " + topic);
-        this.compKey = topic;
+        SubscriptionManager subscriptionManager = SubscriptionManagerFactory.getInstance();
         subscriptionManager.addSubscription(topic, this);
+        this.compKey = topic;
         sendSubscribed(requestId, topic);
         logger.info("Clients of company " + compKey + " are: " + subscriptionManager.getClients(compKey).size());
     }
@@ -172,14 +171,18 @@ public class WampSessionEntity {
      * Sends new event to this client
      * @param topic
      * @param jsonData Data must be in json format
+     * @return Authorization Key to be deleted from managers or null if remove should not happen
      */
-    public void sendEvent(String topic, String jsonData) {
+    public String sendEvent(String topic, String jsonData) {
         if (this.authKey != null) {
-            Instant expiresAt = authManager.getValue(this.authKey).getExpiresAt();
-            if (expiresAt.isBefore(Instant.now())) {
-                authManager.removeToken(this.getAuthKey());
-                subscriptionManager.removeAuthorization(this.getCompKey(), this.getAuthKey());
-                return;
+            AuthManager authManager = AuthManagerFactory.getInstance();
+            TokenValueEntity valueEntity = authManager.getValue(this.authKey);
+            if (valueEntity == null) {
+                return null;
+            }
+            if (valueEntity.getExpiresAt().isBefore(Instant.now())) {
+                authManager.removeToken(this.authKey);
+                return this.authKey;
             }
         }
         JsonArray wampArray = new JsonArray();
@@ -192,6 +195,7 @@ public class WampSessionEntity {
         wampArray.add(jsonData); // PUBLISH.ArgumentKw|dict
 
         sendMessageToSession(wampArray.toString());
+        return null;
     }
 
     @Override

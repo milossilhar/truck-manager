@@ -37,44 +37,6 @@ public class SubscriptionManager {
     }
 
     /**
-     * Removes client from subscription to specific company key
-     * @param compKey
-     * @param session
-     */
-    public void removeSubscription(String compKey, WampSessionEntity session) {
-        if (compKey == null) {
-            throw new NullPointerException("compKey is null");
-        }
-        if (session == null) {
-            throw new NullPointerException("session is null");
-        }
-
-        subscriptions.computeIfPresent(compKey, (key, clients) -> {
-            clients.remove(session);
-            return clients;
-        });
-    }
-
-    /**
-     * Removes all clients from subscription to specific company key
-     * @param compKey
-     * @param authKey
-     */
-    public void removeAuthorization(String compKey, String authKey) {
-        if (compKey == null) {
-            throw new NullPointerException("compKey is null");
-        }
-        if (authKey == null) {
-            throw new NullPointerException("authKey is null");
-        }
-
-        subscriptions.computeIfPresent(compKey, (key, clients) -> {
-            clients.removeIf(session -> session.getAuthKey().equals(authKey));
-            return clients;
-        });
-    }
-
-    /**
      * Gets all clients for given company key
      * @param compKey
      * @return
@@ -83,7 +45,7 @@ public class SubscriptionManager {
         if (compKey == null) {
             throw new NullPointerException("compKey is null");
         }
-        return subscriptions.getOrDefault(compKey, Collections.emptySet());
+        return Collections.unmodifiableSet(subscriptions.getOrDefault(compKey, Collections.emptySet()));
     }
 
     /**
@@ -98,13 +60,21 @@ public class SubscriptionManager {
         if (jsonData == null) {
             throw new NullPointerException("jsonData is null");
         }
-        subscriptions.computeIfPresent(compKey, (key, clients) -> {
-            clients.forEach(cl -> cl.sendEvent(compKey, jsonData));
-            return clients;
+
+        Set<WampSessionEntity> clientsToRemove = new HashSet<>();
+        Set<WampSessionEntity> clients = subscriptions.getOrDefault(compKey, null);
+        if (clients != null) {
+            clients.forEach(client -> {
+                if (client.isClosed()) {
+                    clientsToRemove.add(client);
+                } else {
+                    client.sendEvent(compKey, jsonData);
+                }
+            });
+        }
+        subscriptions.computeIfPresent(compKey, (key, cl) -> {
+            cl.removeAll(clientsToRemove);
+            return cl;
         });
-        //.getOrDefault(compKey, null);
-        //if (clients != null) {
-        //    clients.forEach(cl -> cl.sendEvent(compKey, jsonData));
-        //}
     }
 }
