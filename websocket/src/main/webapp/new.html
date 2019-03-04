@@ -32,6 +32,8 @@
             };
 
             connection.onclose = function (reason, details) {
+                $('#status').html('<div>Disconnected by server</div>');
+                $('#msgs').html('');
                 console.warn(reason);
             };
 
@@ -47,6 +49,7 @@
                 sess = null;
                 c.close();
                 $('#status').html('<div>Disconnected by user</div>');
+                $('#msgs').html('');
             }
         }
 
@@ -56,9 +59,12 @@
             console.info("Subscribing to company-" + compKey);
             sess.subscribe(compKey, onNewRecord).then(
                 function(subscription) {
+                    $('#status').html('<div>Subscribed to company-' + compKey + '</div>');
                     console.log("Subscribed to company-" + compKey);
                 },
                 function(error) {
+                    $('#status').html('<div>Failed to subscribe</div>');
+                    $('#msgs').html('');
                     console.warn("Failed to subscribe: " + JSON.stringify(error));
                 });
         }
@@ -70,7 +76,7 @@
                 connection = null;
                 sess = null;
                 c.close();
-                $('#status').html('<div>Login failed...</div>');
+                $('#status').html('<div>Invalid login</div>');
             }
         }
 
