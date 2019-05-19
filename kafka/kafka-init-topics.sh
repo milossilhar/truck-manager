@@ -4,11 +4,11 @@
 set -e
 
 function printUsage {
-  echo "USAGE: $0 [zookeeper_server] [1|3|5|9] [company keys]"
+  echo "USAGE: $0 [zookeeper_server] [1|3|5|9] [topic_names]"
   echo "zookeeper_server    zookeeper connection in the form host:port"
   echo "                    multiple hosts can be given to allow fail-over"
   echo "1|3|5|9             number of running instances of kafka"
-  echo "company_keys        comma-separated values of company keys"
+  echo "topic_names         comma-separated values of company keys"
   exit 1
 }
 
@@ -50,8 +50,8 @@ case $2 in
   ;;
 esac
 
-echo "INFO - Creating topic: auth_keys"
-${BINARY_LOCATION}/kafka-topics.sh --create --zookeeper ${1} --topic auth_keys --partitions ${partitions} --replication-factor ${factor}
+echo "INFO - Creating topic: auth-keys"
+${BINARY_LOCATION}/kafka-topics.sh --create --zookeeper ${1} --topic "auth-keys" --partitions ${partitions} --replication-factor ${factor}
 
 for arg in "${@:3}"; do
   echo "INFO - Creating topic: $arg"
