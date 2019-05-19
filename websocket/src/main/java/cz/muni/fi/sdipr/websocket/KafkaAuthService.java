@@ -28,7 +28,11 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class KafkaAuthService implements Runnable {
     private static final Logger logger = LoggerFactory.getLogger(KafkaAuthService.class);
 
-    private static final String KAFKA_SERVERS = "192.168.1.1:9092,192.168.1.1:9093,192.168.1.1:9094";
+    public static final String KAFKA_SERVERS = "localhost:9092,localhost:9093,localhost:9094";
+    public static final String AUTH_KEY_TOPIC = "auth-keys";
+    public static String OPER_INSERT = "insert";
+    public static String OPER_UPDATE = "update";
+    public static String OPER_DELETE = "delete";
 
     private static KafkaAuthService instance;
     private static AuthManager authManager;
@@ -62,7 +66,7 @@ public class KafkaAuthService implements Runnable {
             props.put("key.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
             props.put("value.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
             consumer = new KafkaConsumer<>(props);
-            consumer.subscribe(Collections.singletonList("auth_keys"));
+            consumer.subscribe(Collections.singletonList(AUTH_KEY_TOPIC));
             authManager = auManager;
             subscriptionManager = subManager;
 
@@ -100,16 +104,18 @@ public class KafkaAuthService implements Runnable {
                 try {
                     Gson gson = new GsonBuilder().excludeFieldsWithModifiers(Modifier.TRANSIENT).create();
                     KafkaAuthKeyEntity value = gson.fromJson(record.value(), KafkaAuthKeyEntity.class);
-                    Instant expiresAt = Instant.parse(value.getExpiresAt());
-                    if (value.getOperation().equals("insert")) {
-                        if (expiresAt.isAfter(Instant.now())) {
+                    Instant expiresAt = value.getExpiresAt().equals("") ?
+                            null :
+                            Instant.parse(value.getExpiresAt());
+                    if (value.getOperation().equals(OPER_INSERT)) {
+                        if (expiresAt == null || expiresAt.isAfter(Instant.now())) {
                             logger.info("Insert token: " + record.key() + " compKey: " + value.getCompKey());
                             authManager.addToken(record.key(), value.getCompKey(), expiresAt);
                         }
-                    } else if (value.getOperation().equals("update")) {
+                    } else if (value.getOperation().equals(OPER_UPDATE)) {
                         logger.info("Update token: " + record.key() + " expiresAt: " + expiresAt);
                         authManager.extendToken(record.key(), expiresAt);
-                    } else if (value.getOperation().equals("delete")) {
+                    } else if (value.getOperation().equals(OPER_DELETE)) {
                         logger.info("Remove token: " + record.key());
                         authManager.removeToken(record.key());
                         //subscriptionManager.removeAuthorization(value.getCompKey(), record.key());

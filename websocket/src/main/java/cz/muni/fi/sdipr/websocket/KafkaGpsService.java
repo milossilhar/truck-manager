@@ -15,7 +15,7 @@ import java.util.regex.Pattern;
 public class KafkaGpsService implements Runnable {
     private static final Logger logger = LoggerFactory.getLogger(KafkaGpsService.class);
 
-    private static final String KAFKA_SERVERS = "192.168.1.1:9092,192.168.1.1:9093,192.168.1.1:9094";
+    private static final String KAFKA_SERVERS = "localhost:9092,localhost:9093,localhost:9094";
     private static final String TOPIC_PREFIX = "company-";
 
     private static KafkaGpsService instance;

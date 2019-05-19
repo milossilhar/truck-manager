@@ -4,7 +4,6 @@ import com.google.gson.Gson;
 import cz.muni.fi.sdipr.api.entities.KafkaAuthKeyEntity;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.producer.KafkaProducer;
-import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,7 +23,7 @@ public class App {
     private static Logger logger = LoggerFactory.getLogger(App.class);
 
     private static final String KAFKA_SERVERS = "localhost:9092,localhost:9093,localhost:9094";
-    private static final String AUTH_KEY_TOPIC = "auth_keys";
+    private static final String AUTH_KEY_TOPIC = "auth-keys";
 
     public static void main( String[] args )
     {
@@ -76,22 +75,35 @@ public class App {
                     continue;
                 }
 
-                // reading authkey
+                // reading auth_key
                 logger.info("Auth key: ");
                 line = br.readLine();
                 String authKey = line;
 
-                // reading companykey
-                logger.info("Company key: ");
-                line = br.readLine();
-                if (topics.contains(line)) {
-                    kafkaAuthKeyEntity.setCompKey(line);
+                if (line.equals("insert")) {
+                    // reading company_key
+                    logger.info("Company key: ");
+                    line = br.readLine();
+                    if (topics.contains(line)) {
+                        kafkaAuthKeyEntity.setCompKey(line);
+                    } else {
+                        logger.info("This company key is not supported");
+                        continue;
+                    }
                 } else {
-                    logger.info("This company key is not supported");
-                    continue;
+                    // no company_key needed
+                    kafkaAuthKeyEntity.setCompKey("");
                 }
 
-                kafkaAuthKeyEntity.setExpiresAt(Instant.now().plusSeconds(120).toString());
+                // reading expiration decision
+                logger.info("Include expiration (120s) (yes/no): ");
+                line = br.readLine();
+                if (line.equals("yes")) {
+                    kafkaAuthKeyEntity.setExpiresAt(Instant.now().plusSeconds(120).toString());
+                } else {
+                    kafkaAuthKeyEntity.setExpiresAt("");
+                }
+
                 producer.send(new ProducerRecord<>(AUTH_KEY_TOPIC, authKey, gson.toJson(kafkaAuthKeyEntity, KafkaAuthKeyEntity.class)));
             }
         } catch (IOException ex) {

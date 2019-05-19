@@ -180,7 +180,7 @@ public class WampSessionEntity {
             if (valueEntity == null) {
                 return null;
             }
-            if (valueEntity.getExpiresAt().isBefore(Instant.now())) {
+            if (valueEntity.getExpiresAt() != null && valueEntity.getExpiresAt().isBefore(Instant.now())) {
                 authManager.removeToken(this.authKey);
                 return this.authKey;
             }
